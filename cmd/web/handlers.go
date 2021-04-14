@@ -19,30 +19,17 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, err)
 	}
 
-	for _, s := range l {
-		fmt.Fprintf(w, "%v\n", s)
+	td := &templateData{
+		Snippets: l,
 	}
+	app.render(w, r, "home.page.tmpl", td)
 
-	// files := []string{
-	// 	"./ui/html/home.page.tmpl",
-	// 	"./ui/html/footer.partial.tmpl",
-	// 	"./ui/html/base.layout.tmpl",
-	// }
-
-	// ts, err := template.ParseFiles(files...)
-	// if err != nil {
-	// 	app.serverError(w, err)
-	// 	return
-	// }
-
-	// err = ts.Execute(w, nil)
-	// if err != nil {
-	// 	app.serverError(w, err)
-	// }
+	if err != nil {
+		app.serverError(w, err)
+	}
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
-
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
 		app.notFound(w)
@@ -52,13 +39,14 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	s, err := app.snippets.Get(id)
 	if err == models.ErrNoRecord {
 		app.notFound(w)
-	}
-	if err != nil {
+		return
+	} else if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	fmt.Fprintf(w, "<h1>%s | %d</h1><p>%s</p><div>Created: %s</div><div>Expires: %s</div>",
-		s.Title, s.ID, s.Content, s.Created, s.Expires)
+
+	td := &templateData{Snippet: s}
+	app.render(w, r, "show.page.tmpl", td)
 }
 
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
@@ -79,4 +67,17 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
+}
+
+func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
+	ts, ok := app.templateCache[name]
+	if !ok {
+		app.serverError(w, fmt.Errorf("the template %s does not exist", name))
+		return
+	}
+
+	err := ts.Execute(w, td)
+	if err != nil {
+		app.serverError(w, err)
+	}
 }

@@ -11,8 +11,11 @@ type SnippetModel struct {
 }
 
 func (m *SnippetModel) Get(id int) (*models.Snippet, error) {
+	// stmt := `SELECT id, title, content, created, expires FROM snippets
+	// WHERE expires > UTC_TIMESTAMP() AND id = ?`
+
 	stmt := `SELECT id, title, content, created, expires FROM snippets
-	WHERE expires > UTC_TIMESTAMP() AND id = ?`
+	WHERE id = ?`
 
 	res := m.DB.QueryRow(stmt, id)
 

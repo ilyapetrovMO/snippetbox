@@ -3,6 +3,29 @@
 {{define "title"}}Home{{end}}
 
 {{define "body"}}
-<h2>Latest Snippets</h2>
-<p>There's nothing to see here yet!</p>
+<h2>Latest snippets</h2>
+    {{if .Snippets}}
+    <div class="snippet">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Snippets}}
+                <tr>
+                    <td>{{.ID}}</td>
+                    <td><a href="/snippet?id={{.ID}}">{{.Title}}</a></td>
+                    <td>{{.Created}}</td>
+                </tr>    
+                {{end}}        
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <p>Theres nothing here... yet!</p>
+    {{end}}
 {{end}}
