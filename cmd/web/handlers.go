@@ -68,16 +68,3 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
 }
-
-func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
-	ts, ok := app.templateCache[name]
-	if !ok {
-		app.serverError(w, fmt.Errorf("the template %s does not exist", name))
-		return
-	}
-
-	err := ts.Execute(w, td)
-	if err != nil {
-		app.serverError(w, err)
-	}
-}
