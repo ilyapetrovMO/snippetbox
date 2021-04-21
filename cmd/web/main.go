@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"os"
 	"text/template"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golangcollege/sessions"
 	"github.com/ilyapetrovMO/snippetbox/pkg/models/mysql"
 )
 
@@ -17,10 +19,12 @@ type application struct {
 	infoLog       *log.Logger
 	snippets      *mysql.SnippetModel
 	templateCache map[string]*template.Template
+	session       *sessions.Session
 }
 
 func main() {
 	addr := flag.String("addr", ":8080", "HTTP network address")
+	skey := flag.String("skey", "s6Ndh+pPbnzHbS*+9Pk8qGWhTzbpa@ge", "Session store secret key")
 	dsn := flag.String("dsn", "web:web@/snippetbox?parseTime=true", "MySQL database")
 	flag.Parse()
 
@@ -28,11 +32,9 @@ func main() {
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	db, err := openDB(*dsn)
-
 	if err != nil {
 		errorLog.Fatal(err)
 	}
-
 	defer db.Close()
 
 	templates, err := newTemplateCache("./ui/html/")
@@ -40,11 +42,15 @@ func main() {
 		errorLog.Fatal(err)
 	}
 
+	session := sessions.New([]byte(*skey))
+	session.Lifetime = 12 * time.Hour
+
 	app := &application{
 		errorLog:      errorLog,
 		infoLog:       infoLog,
 		snippets:      &mysql.SnippetModel{DB: db},
 		templateCache: templates,
+		session:       session,
 	}
 
 	infoLog.Println("Starting a server on " + *addr)
