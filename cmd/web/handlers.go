@@ -59,9 +59,7 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	form.PermittedValues("expires", "1", "7", "365")
 
 	if !form.Valid() {
-		app.render(w, r, "create.page.tmpl", &templateData{
-			Form: form,
-		})
+		app.render(w, r, "create.page.tmpl", &templateData{Form: form})
 		return
 	}
 
@@ -76,15 +74,11 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) createSnippetForm(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "create.page.tmpl", &templateData{
-		Form: forms.New(nil),
-	})
+	app.render(w, r, "create.page.tmpl", &templateData{Form: forms.New(nil)})
 }
 
 func (app *application) signupUserForm(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "signup.page.tmpl", &templateData{
-		Form: forms.New(nil),
-	})
+	app.render(w, r, "signup.page.tmpl", &templateData{Form: forms.New(nil)})
 }
 
 func (app *application) signupUser(w http.ResponseWriter, r *http.Request) {
@@ -98,17 +92,13 @@ func (app *application) signupUser(w http.ResponseWriter, r *http.Request) {
 	form.MinLength("password", 10)
 
 	if !form.Valid() {
-		app.render(w, r, "signup.page.tmpl", &templateData{
-			Form: form,
-		})
+		app.render(w, r, "signup.page.tmpl", &templateData{Form: form})
 	}
 
 	err := app.users.Insert(form.Get("name"), form.Get("email"), form.Get("password"))
 	if err == models.ErrDuplicateEmail {
 		form.Errors.Add("email", "Address already in use")
-		app.render(w, r, "signup.page.tmpl", &templateData{
-			Form: form,
-		})
+		app.render(w, r, "signup.page.tmpl", &templateData{Form: form})
 		return
 	} else if err != nil {
 		app.serverError(w, err)
@@ -120,13 +110,43 @@ func (app *application) signupUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) loginUserForm(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "login.page.tmpl", nil)
+	app.render(w, r, "login.page.tmpl", &templateData{Form: forms.New(nil)})
 }
 
 func (app *application) loginUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("User logged in!"))
+	if err := r.ParseForm(); err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	form := forms.New(r.PostForm)
+	form.Required("email", "password")
+	form.MatchesPattern("email", forms.EmailRX)
+	form.MinLength("password", 10)
+
+	if !form.Valid() {
+		form.Errors.Add("generic", "Invalid credentials")
+		app.render(w, r, "login.page.tmpl", &templateData{Form: form})
+		return
+	}
+
+	id, err := app.users.Authenticate(form.Get("email"), form.Get("password"))
+	if err == models.ErrInvalidCredentials {
+		form.Errors.Add("generic", "Invalid credentials")
+		app.render(w, r, "login.page.tmpl", &templateData{Form: form})
+		return
+	} else if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	app.session.Put(r, "userID", id)
+
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
 func (app *application) logoutUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("User logged out!"))
+	app.session.Remove(r, "userID")
+	app.session.Put(r, "flash", "Logout successful!")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

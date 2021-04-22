@@ -24,6 +24,10 @@ type application struct {
 	session       *sessions.Session
 }
 
+type contextKey string
+
+var contextKeyUser = contextKey("user")
+
 func main() {
 	addr := flag.String("addr", ":8080", "HTTP network address")
 	skey := flag.String("skey", "s6Ndh+pPbnzHbS*+9Pk8qGWhTzbpa@ge", "Session store secret key")
